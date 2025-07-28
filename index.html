@@ -24,7 +24,7 @@
       text-align: center;
       padding: 5px 20px;
       background: rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
+      border-radius: 15px;
       backdrop-filter: blur(6px);
       max-width: 95vw;
       white-space: pre-wrap;
@@ -40,11 +40,11 @@
       display: block;
       width: 90vw;
       max-width: 700px;
-      height: 300px; /* menos alto para que quepa el botón justo abajo */
+      height: 300px;
     }
 
     #musicControl {
-      margin-top: 2px; /* justo debajo del canvas */
+      margin-top: 2px;
       background: rgba(255, 255, 255, 0.2);
       border: none;
       color: white;
@@ -63,152 +63,200 @@
 </head>
 <body>
 
-  <!-- 💖 Mensaje romántico arriba -->
   <div id="mensajeAmor"></div>
-
-  <!-- ❤️ Canvas corazón -->
   <canvas id="heartCanvas" width="700" height="600"></canvas>
-
-  <!-- 🎵 Botón de música debajo del corazón -->
   <button id="musicControl">🔊 Reproducir música</button>
   <audio id="bgMusic" src="audio/dondenadiepuedair.mp3" loop></audio>
-<audio id="bgMusic" src="audio/catorce.mp3" loop></audio>
-<script>
-  // ❤️ Mensaje tipo máquina de escribir
-  const texto = `Mi amor es como este corazón jamás podrá destruirse. Puede deformarse, pero nunca romperse. Y si alguien puede mejorarlo, eres tú. 💖`;
+  <audio id="bgMusic" src="audio/catorce.mp3" loop></audio>
+  <script>
+    const texto = `Mi amor es como este corazón jamás podrá destruirse. Puede deformarse, pero nunca romperse. Y si alguien puede mejorarlo, eres tú. 💖`;
 
-  const mensaje = document.getElementById('mensajeAmor');
-  let i = 0;
-  function escribirMensaje() {
-    if (i < texto.length) {
-      mensaje.textContent += texto.charAt(i);
-      i++;
-      setTimeout(escribirMensaje, 40);
+    const mensaje = document.getElementById('mensajeAmor');
+    let i = 0;
+    function escribirMensaje() {
+      if (i < texto.length) {
+        mensaje.textContent += texto.charAt(i);
+        i++;
+        setTimeout(escribirMensaje, 40);
+      }
     }
-  }
-  setTimeout(() => {
-    escribirMensaje();
-  }, 1000);
+    setTimeout(() => {
+      escribirMensaje();
+    }, 500);
 
-  // 🎵 Control de música
-  const bgMusic = document.getElementById('bgMusic');
-  const musicControl = document.getElementById('musicControl');
+    const bgMusic = document.getElementById('bgMusic');
+    const musicControl = document.getElementById('musicControl');
 
-  musicControl.addEventListener('click', () => {
-    if (bgMusic.paused) {
-      bgMusic.play();
-      musicControl.textContent = '⏸️ Pausar música';
-    } else {
-      bgMusic.pause();
-      musicControl.textContent = '🔊 Reproducir música';
+    musicControl.addEventListener('click', () => {
+      if (bgMusic.paused) {
+        bgMusic.play();
+        musicControl.textContent = '⏸️ Pausar música';
+      } else {
+        bgMusic.pause();
+        musicControl.textContent = '🔊 Reproducir música';
+      }
+    });
+
+    const canvas = document.getElementById('heartCanvas');
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+
+    const PARTICLE_COUNT = 1200;
+    const PARTICLE_SIZE = 9;
+
+    let mouseX = null;
+    let mouseY = null;
+
+    let musicStarted = false;
+    canvas.addEventListener('mousemove', () => {
+      if (!musicStarted) {
+        bgMusic.play().catch(() => {});
+        musicControl.textContent = '⏸️ Pausar música';
+        musicStarted = true;
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseX = e.clientX - rect.left;
+      mouseY = e.clientY - rect.top;
+    });
+    canvas.addEventListener('mouseleave', () => {
+      mouseX = null;
+      mouseY = null;
+    });
+
+    function isInsideHeart(x, y) {
+      const scale = 180;
+      const cx = (x - width / 2) / scale;
+      const cy = (height / 2 - y) / scale;
+      const val = Math.pow(cx * cx + cy * cy - 1, 3) - cx * cx * cy * cy * cy;
+      return val <= 0;
     }
-  });
 
-  // ❤️ Corazón animado con partículas
-  const canvas = document.getElementById('heartCanvas');
-  const ctx = canvas.getContext('2d');
-  const width = canvas.width;
-  const height = canvas.height;
-
-  const PARTICLE_COUNT = 1200;
-  const PARTICLE_SIZE = 5;
-
-  let mouseX = null;
-  let mouseY = null;
-
-  let musicStarted = false;
-  canvas.addEventListener('mousemove', () => {
-    if (!musicStarted) {
-      bgMusic.play().catch(() => {});
-      musicControl.textContent = '⏸️ Pausar música';
-      musicStarted = true;
-    }
-  });
-
-  canvas.addEventListener('mousemove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    mouseX = e.clientX - rect.left;
-    mouseY = e.clientY - rect.top;
-  });
-  canvas.addEventListener('mouseleave', () => {
-    mouseX = null;
-    mouseY = null;
-  });
-
-  function isInsideHeart(x, y) {
-    const scale = 130;
-    const cx = (x - width / 2) / scale;
-    const cy = (height / 2 - y) / scale;
-    const val = Math.pow(cx * cx + cy * cy - 1, 3) - cx * cx * cy * cy * cy;
-    return val <= 0;
-  }
-
-  const particles = [];
-  while (particles.length < PARTICLE_COUNT) {
-    const x = Math.random() * width;
-    const y = Math.random() * height;
-    if (isInsideHeart(x, y)) {
-      particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        targetX: x,
-        targetY: y,
-        vx: 0,
-        vy: 0,
-        size: PARTICLE_SIZE
-      });
-    }
-  }
-
-  const SPRING = 0.02;
-  const FRICTION = 0.85;
-  const MOUSE_INFLUENCE = 120;
-  const MOUSE_FORCE = 0.15;
-
-  function updateParticle(p) {
-    const dx = p.targetX - p.x;
-    const dy = p.targetY - p.y;
-    p.vx += dx * SPRING;
-    p.vy += dy * SPRING;
-
-    if (mouseX !== null && mouseY !== null) {
-      const mdx = p.x - mouseX;
-      const mdy = p.y - mouseY;
-      const dist = Math.sqrt(mdx * mdx + mdy * mdy);
-      if (dist < MOUSE_INFLUENCE) {
-        const force = (MOUSE_INFLUENCE - dist) * MOUSE_FORCE;
-        p.vx += (mdx / dist) * force;
-        p.vy += (mdy / dist) * force;
+    const particles = [];
+    while (particles.length < PARTICLE_COUNT) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      if (isInsideHeart(x, y)) {
+        particles.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          targetX: x,
+          targetY: y,
+          vx: 0,
+          vy: 0,
+          size: PARTICLE_SIZE,
+          originalTargetX: x,
+          originalTargetY: y
+        });
       }
     }
 
-    p.vx *= FRICTION;
-    p.vy *= FRICTION;
+    const SPRING = 0.08;
+    const FRICTION = 0.85;
+    const MOUSE_INFLUENCE = 190;
+    const MOUSE_FORCE = 0.25;
 
-    p.x += p.vx;
-    p.y += p.vy;
-  }
+    function updateParticle(p) {
+      const dx = p.targetX - p.x;
+      const dy = p.targetY - p.y;
+      p.vx += dx * SPRING;
+      p.vy += dy * SPRING;
 
-  function drawParticle(p) {
-    ctx.beginPath();
-    ctx.fillStyle = '#FF3366';
-    ctx.shadowColor = 'rgba(255, 100, 150, 0.8)';
-    ctx.shadowBlur = 6;
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
-  }
+      if (mouseX !== null && mouseY !== null) {
+        const mdx = p.x - mouseX;
+        const mdy = p.y - mouseY;
+        const dist = Math.sqrt(mdx * mdx + mdy * mdy);
+        if (dist < MOUSE_INFLUENCE) {
+          const force = (MOUSE_INFLUENCE - dist) * MOUSE_FORCE;
+          p.vx += (mdx / dist) * force;
+          p.vy += (mdy / dist) * force;
+        }
+      }
 
-  function animate() {
-    ctx.clearRect(0, 0, width, height);
-    for (let p of particles) {
-      updateParticle(p);
-      drawParticle(p);
+      p.vx *= FRICTION;
+      p.vy *= FRICTION;
+
+      p.x += p.vx;
+      p.y += p.vy;
     }
-    requestAnimationFrame(animate);
-  }
 
-  animate();
-</script>
+    function drawParticle(p) {
+      ctx.beginPath();
+      ctx.fillStyle = '#FF3366';
+      ctx.shadowColor = 'rgba(255, 100, 150, 0.8)';
+      ctx.shadowBlur = 8;
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
+    const arrows = [];
+    function spawnArrow() {
+      const side = Math.random() > 0.1 ? 'left' : 'right';
+      const x = side === 'left' ? 0 : width;
+      const y = Math.random() * height;
+      const angle = Math.atan2(height / 2 - y, width / 2 - x);
+      arrows.push({ x, y, angle, speed: 3 });
+      setTimeout(spawnArrow, 2000 + Math.random() * 3000);
+    }
+    spawnArrow();
+
+    function drawArrow(arrow) {
+      const len = 20;
+      const headlen = 10;
+      const endX = arrow.x + Math.cos(arrow.angle) * len;
+      const endY = arrow.y + Math.sin(arrow.angle) * len;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(arrow.x, arrow.y);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(endX, endY);
+      ctx.lineTo(endX - headlen * Math.cos(arrow.angle - Math.PI / 6), endY - headlen * Math.sin(arrow.angle - Math.PI / 6));
+      ctx.lineTo(endX - headlen * Math.cos(arrow.angle + Math.PI / 6), endY - headlen * Math.sin(arrow.angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+
+      for (const arrow of arrows) {
+        arrow.x += Math.cos(arrow.angle) * arrow.speed;
+        arrow.y += Math.sin(arrow.angle) * arrow.speed;
+        drawArrow(arrow);
+
+        if (isInsideHeart(arrow.x, arrow.y)) {
+          for (let p of particles) {
+            const dx = p.targetX - arrow.x;
+            const dy = p.targetY - arrow.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 90) {
+              p.targetX += (Math.random() - 0.5) * 50;
+              p.targetY += (Math.random() - 0.5) * 50;
+              setTimeout(() => {
+                p.targetX = p.originalTargetX;
+                p.targetY = p.originalTargetY;
+              }, 1000);
+            }
+          }
+        }
+      }
+
+      for (let p of particles) {
+        updateParticle(p);
+        drawParticle(p);
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
 </body>
 </html>
