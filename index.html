@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Corazón Relleno Grande</title>
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #5d26c1, #1a2980);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+      position: relative;
+      padding: 20px 0;
+    }
+
+    #mensajeAmor {
+      color: #fff;
+      font-size: 1.0rem;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding: 5px 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      backdrop-filter: blur(6px);
+      max-width: 95vw;
+      white-space: pre-wrap;
+      line-height: 1.8;
+      word-spacing: 8px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+      margin-bottom: 20px;
+      pointer-events: none;
+    }
+
+    canvas {
+      background: transparent;
+      display: block;
+      width: 90vw;
+      max-width: 700px;
+      height: 300px; /* menos alto para que quepa el botón justo abajo */
+    }
+
+    #musicControl {
+      margin-top: 2px; /* justo debajo del canvas */
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      font-size: 16px;
+      padding: 10px 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      backdrop-filter: blur(5px);
+      transition: background 0.3s;
+    }
+
+    #musicControl:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 💖 Mensaje romántico arriba -->
+  <div id="mensajeAmor"></div>
+
+  <!-- ❤️ Canvas corazón -->
+  <canvas id="heartCanvas" width="700" height="600"></canvas>
+
+  <!-- 🎵 Botón de música debajo del corazón -->
+  <button id="musicControl">🔊 Reproducir música</button>
+  <audio id="bgMusic" src="audio/dondenadiepuedair.mp3" loop></audio>
+<audio id="bgMusic" src="audio/catorce.mp3" loop></audio>
+<script>
+  // ❤️ Mensaje tipo máquina de escribir
+  const texto = `Mi amor es como este corazón jamás podrá destruirse. Puede deformarse, pero nunca romperse. Y si alguien puede mejorarlo, eres tú. 💖`;
+
+  const mensaje = document.getElementById('mensajeAmor');
+  let i = 0;
+  function escribirMensaje() {
+    if (i < texto.length) {
+      mensaje.textContent += texto.charAt(i);
+      i++;
+      setTimeout(escribirMensaje, 40);
+    }
+  }
+  setTimeout(() => {
+    escribirMensaje();
+  }, 1000);
+
+  // 🎵 Control de música
+  const bgMusic = document.getElementById('bgMusic');
+  const musicControl = document.getElementById('musicControl');
+
+  musicControl.addEventListener('click', () => {
+    if (bgMusic.paused) {
+      bgMusic.play();
+      musicControl.textContent = '⏸️ Pausar música';
+    } else {
+      bgMusic.pause();
+      musicControl.textContent = '🔊 Reproducir música';
+    }
+  });
+
+  // ❤️ Corazón animado con partículas
+  const canvas = document.getElementById('heartCanvas');
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+
+  const PARTICLE_COUNT = 1200;
+  const PARTICLE_SIZE = 5;
+
+  let mouseX = null;
+  let mouseY = null;
+
+  let musicStarted = false;
+  canvas.addEventListener('mousemove', () => {
+    if (!musicStarted) {
+      bgMusic.play().catch(() => {});
+      musicControl.textContent = '⏸️ Pausar música';
+      musicStarted = true;
+    }
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = e.clientX - rect.left;
+    mouseY = e.clientY - rect.top;
+  });
+  canvas.addEventListener('mouseleave', () => {
+    mouseX = null;
+    mouseY = null;
+  });
+
+  function isInsideHeart(x, y) {
+    const scale = 130;
+    const cx = (x - width / 2) / scale;
+    const cy = (height / 2 - y) / scale;
+    const val = Math.pow(cx * cx + cy * cy - 1, 3) - cx * cx * cy * cy * cy;
+    return val <= 0;
+  }
+
+  const particles = [];
+  while (particles.length < PARTICLE_COUNT) {
+    const x = Math.random() * width;
+    const y = Math.random() * height;
+    if (isInsideHeart(x, y)) {
+      particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        targetX: x,
+        targetY: y,
+        vx: 0,
+        vy: 0,
+        size: PARTICLE_SIZE
+      });
+    }
+  }
+
+  const SPRING = 0.02;
+  const FRICTION = 0.85;
+  const MOUSE_INFLUENCE = 120;
+  const MOUSE_FORCE = 0.15;
+
+  function updateParticle(p) {
+    const dx = p.targetX - p.x;
+    const dy = p.targetY - p.y;
+    p.vx += dx * SPRING;
+    p.vy += dy * SPRING;
+
+    if (mouseX !== null && mouseY !== null) {
+      const mdx = p.x - mouseX;
+      const mdy = p.y - mouseY;
+      const dist = Math.sqrt(mdx * mdx + mdy * mdy);
+      if (dist < MOUSE_INFLUENCE) {
+        const force = (MOUSE_INFLUENCE - dist) * MOUSE_FORCE;
+        p.vx += (mdx / dist) * force;
+        p.vy += (mdy / dist) * force;
+      }
+    }
+
+    p.vx *= FRICTION;
+    p.vy *= FRICTION;
+
+    p.x += p.vx;
+    p.y += p.vy;
+  }
+
+  function drawParticle(p) {
+    ctx.beginPath();
+    ctx.fillStyle = '#FF3366';
+    ctx.shadowColor = 'rgba(255, 100, 150, 0.8)';
+    ctx.shadowBlur = 6;
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, width, height);
+    for (let p of particles) {
+      updateParticle(p);
+      drawParticle(p);
+    }
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+</script>
+
+</body>
+</html>
